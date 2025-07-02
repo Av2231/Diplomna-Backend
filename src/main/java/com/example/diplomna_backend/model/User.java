@@ -142,6 +142,18 @@ public class User {
 
         @Getter
         @Setter
+        private String title;
+
+        @Getter
+        @Setter
+        private double x;
+
+        @Getter
+        @Setter
+        private double y;
+
+        @Getter
+        @Setter
         private Date fromDate;
 
         @Getter
@@ -151,15 +163,21 @@ public class User {
         public Reservation() {
             this.locationName = "";
             this.category = "";
+            this.title = "";
             this.fromDate = new Date();
             this.toDate = new Date();
+            this.x = 0;
+            this.y = 0;
         }
 
-        public Reservation(String locationName, String category, Date fromDate, Date toDate) {
+        public Reservation(String locationName, String category, String title,  Date fromDate, Date toDate, double x, double y) {
             this.locationName = locationName;
             this.category = category;
+            this.title = title;
             this.fromDate = fromDate;
             this.toDate = toDate;
+            this.x = x;
+            this.y = y;
         }
     }
 

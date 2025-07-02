@@ -6,10 +6,7 @@ import com.example.diplomna_backend.model.User;
 import com.example.diplomna_backend.repository.LocationRepository;
 import com.example.diplomna_backend.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -151,7 +148,7 @@ public class LocationController {
                                     try {
                                         Date avFrom = formatter.parse(av.getFrom());
                                         Date avTo = formatter.parse(av.getTo());
-                                        return !fromDate.before(avFrom) && !toDate.after(avTo);
+                                        return !fromDate.before(avFrom) && !toDate.after(avTo) && fromDate.getDay() == avFrom.getDay();
                                     } catch (ParseException ex) {
                                         return false;
                                     }
@@ -160,5 +157,37 @@ public class LocationController {
                 .toList();
 
         return ResponseEntity.ok(new LocationSearchResponse(new ArrayList<>(filtered)));
+    }
+
+    @PostMapping("/reserve")
+    public ResponseEntity<?> reserveLocation(@RequestBody ReservationsRequest req) {
+        SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm");
+        Date fromDate, toDate;
+
+        try {
+            fromDate = formatter.parse(req.getFrom());
+            toDate = formatter.parse(req.getTo());
+        } catch (ParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid date format"));
+        }
+
+        User user = userRepository.findById(req.getUserId()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+        }
+
+        User.Reservation reservation = new User.Reservation();
+        reservation.setX(req.getX());
+        reservation.setY(req.getY());
+        reservation.setTitle(req.getTitle());
+        reservation.setLocationName(req.getLocation());
+        reservation.setCategory(req.getType());
+        reservation.setFromDate(fromDate);
+        reservation.setToDate(toDate);
+
+        user.getReservations().add(reservation);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Reservation successfully created"));
     }
 }

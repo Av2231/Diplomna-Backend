@@ -1,23 +1,19 @@
 package com.example.diplomna_backend.controllers;
 
 import com.example.diplomna_backend.dto.*;
+import com.example.diplomna_backend.model.Location;
 import com.example.diplomna_backend.model.User;
 import com.example.diplomna_backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -344,4 +340,34 @@ public class UserController {
         ));
     }
 
+    @PostMapping("/api/get_user_reservations")
+    public ResponseEntity<Map<String, Object>> getUserReservations(@RequestBody GetReservationsRequest req) {
+        String userId = req.getUserId();
+
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "failed",
+                    "message", "User not found"
+            ));
+        }
+
+        User user = optionalUser.get();
+        List<User.Reservation> userReservations = user.getReservations();
+
+        List<Map<String, String>> reservationsResponse = new ArrayList<>();
+        for (User.Reservation res : userReservations) {
+            Map<String, String> map = new HashMap<>();
+            map.put("location_name", res.getLocationName());
+            map.put("category", res.getCategory());
+            map.put("date_from", res.getFromDate().toString());
+            map.put("date_to", res.getToDate().toString());
+            reservationsResponse.add(map);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "reservations", reservationsResponse
+        ));
+    }
 }
