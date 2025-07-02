@@ -340,34 +340,4 @@ public class UserController {
         ));
     }
 
-    @PostMapping("/api/get_user_reservations")
-    public ResponseEntity<Map<String, Object>> getUserReservations(@RequestBody GetReservationsRequest req) {
-        String userId = req.getUserId();
-
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "failed",
-                    "message", "User not found"
-            ));
-        }
-
-        User user = optionalUser.get();
-        List<User.Reservation> userReservations = user.getReservations();
-
-        List<Map<String, String>> reservationsResponse = new ArrayList<>();
-        for (User.Reservation res : userReservations) {
-            Map<String, String> map = new HashMap<>();
-            map.put("location_name", res.getLocationName());
-            map.put("category", res.getCategory());
-            map.put("date_from", res.getFromDate().toString());
-            map.put("date_to", res.getToDate().toString());
-            reservationsResponse.add(map);
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "reservations", reservationsResponse
-        ));
-    }
 }
