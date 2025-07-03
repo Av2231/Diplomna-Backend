@@ -340,4 +340,51 @@ public class UserController {
         ));
     }
 
+    @PostMapping("/save_location_details")
+    public ResponseEntity<?> saveReservation(@RequestBody SaveReservationRequest request) {
+        if (request.getUser_id() == null || request.getFrom_time() == null || request.getTo_time() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "failed",
+                    "message", "Missing required fields"
+            ));
+        }
+
+        System.out.println(">>> Incoming SaveReservationRequest:");
+        System.out.println(" - from_time: " + request.getFrom_time());
+        System.out.println(" - to_time: " + request.getTo_time());
+        System.out.println(" - user_id: " + request.getUser_id());
+        System.out.println(" - title: " + request.getTitle());
+        System.out.println(" - category: " + request.getCategory());
+
+        Optional<User> optionalUser = userRepository.findById(request.getUser_id());
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "status", "failed",
+                    "message", "User not found"
+            ));
+        }
+
+        User user = optionalUser.get();
+
+        User.Reservation reservation = new User.Reservation();
+        reservation.setFromDate(request.getFrom_time());
+        reservation.setToDate(request.getTo_time());
+        reservation.setLocationName(request.getTitle());
+        reservation.setCategory(request.getCategory());
+
+        System.out.println(" - from_time: " + reservation.getFromDate());
+        System.out.println(" - to_time: " + reservation.getToDate() );
+
+        if (user.getReservations() == null) {
+            user.setReservations(new ArrayList<>());
+        }
+
+        user.getReservations().add(reservation);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Reservation saved successfully"
+        ));
+    }
 }

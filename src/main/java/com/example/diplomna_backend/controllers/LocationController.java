@@ -54,7 +54,7 @@ public class LocationController {
         ));
     }
 
-    @PostMapping("/check-exists")
+    @PostMapping("/select_locations")
     public ResponseEntity<?> checkIfLocationExists(@RequestBody CheckLocationRequest request) {
         if (request.getLocation_id() == null || request.getLocation_id().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -80,7 +80,7 @@ public class LocationController {
         }
     }
 
-    @PostMapping("/location-average-rating")
+    @PostMapping("/location_average_rating")
     public ResponseEntity<?> getAverageRatingForLocation(@RequestBody LocationIdRequest request) {
         if (request.getLocation_id() == null || request.getLocation_id().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -124,7 +124,6 @@ public class LocationController {
     public ResponseEntity<?> findLocations(@RequestBody LocationSearchRequest req) {
         SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.getDefault());
         formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
-
         Date fromDate;
         Date toDate;
 
@@ -140,54 +139,49 @@ public class LocationController {
 
         List<Location> allLocations = locationRepository.findAll();
 
-        List<Location> filtered = allLocations.stream()
-                .filter(loc ->
-                        loc.getCategory().equalsIgnoreCase(req.getCategory()) &&
-                                loc.getRegion().equalsIgnoreCase(req.getRegion()) &&
-                                loc.getAvailable_time().stream().anyMatch(av -> {
-                                    try {
-                                        Date avFrom = formatter.parse(av.getFrom());
-                                        Date avTo = formatter.parse(av.getTo());
-                                        return !fromDate.before(avFrom) && !toDate.after(avTo) && fromDate.getDay() == avFrom.getDay();
-                                    } catch (ParseException ex) {
-                                        return false;
-                                    }
-                                })
-                )
-                .toList();
+        List<Location> filtered = new ArrayList<>();
 
-        return ResponseEntity.ok(new LocationSearchResponse(new ArrayList<>(filtered)));
-    }
+        for (Location loc : allLocations) {
+            if (!loc.getCategory().equalsIgnoreCase(req.getCategory()) ||
+                    !loc.getRegion().equalsIgnoreCase(req.getRegion())) {
+                continue;
+            }
 
-    @PostMapping("/reserve")
-    public ResponseEntity<?> reserveLocation(@RequestBody ReservationsRequest req) {
-        SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm");
-        Date fromDate, toDate;
+            List<Location.Availability> matchingTimes = new ArrayList<>();
 
-        try {
-            fromDate = formatter.parse(req.getFrom());
-            toDate = formatter.parse(req.getTo());
-        } catch (ParseException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid date format"));
+            for (Location.Availability av : loc.getAvailable_time()) {
+                try {
+                    Date avFrom = formatter.parse(av.getFrom());
+                    Date avTo = formatter.parse(av.getTo());
+
+                    boolean sameDay = fromDate.getYear() == avFrom.getYear() &&
+                            fromDate.getMonth() == avFrom.getMonth() &&
+                            fromDate.getDate() == avFrom.getDate();
+
+                    boolean containsTimeRange = !fromDate.before(avFrom) && !toDate.after(avTo);
+
+                    if (sameDay && containsTimeRange) {
+                        matchingTimes.add(av);
+                    }
+
+                } catch (ParseException e) {
+                }
+            }
+
+            if (!matchingTimes.isEmpty()) {
+                Location locCopy = new Location();
+                locCopy.setId(loc.getId());
+                locCopy.setName(loc.getName());
+                locCopy.setCategory(loc.getCategory());
+                locCopy.setRegion(loc.getRegion());
+                locCopy.setAddress(loc.getAddress());
+                locCopy.setX(loc.getX());
+                locCopy.setY(loc.getY());
+                locCopy.setAvailable_time((ArrayList<Location.Availability>) matchingTimes);
+                filtered.add(locCopy);
+            }
         }
 
-        User user = userRepository.findById(req.getUserId()).orElse(null);
-        if (user == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
-        }
-
-        User.Reservation reservation = new User.Reservation();
-        reservation.setX(req.getX());
-        reservation.setY(req.getY());
-        reservation.setTitle(req.getTitle());
-        reservation.setLocationName(req.getLocation());
-        reservation.setCategory(req.getType());
-        reservation.setFromDate(fromDate);
-        reservation.setToDate(toDate);
-
-        user.getReservations().add(reservation);
-        userRepository.save(user);
-
-        return ResponseEntity.ok(Map.of("message", "Reservation successfully created"));
+        return ResponseEntity.ok(new LocationSearchResponse((ArrayList<Location>) filtered));
     }
 }

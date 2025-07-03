@@ -154,23 +154,23 @@ public class User {
 
         @Getter
         @Setter
-        private Date fromDate;
+        private String fromDate;
 
         @Getter
         @Setter
-        private Date toDate;
+        private String toDate;
 
         public Reservation() {
             this.locationName = "";
             this.category = "";
             this.title = "";
-            this.fromDate = new Date();
-            this.toDate = new Date();
+            this.fromDate = "";
+            this.toDate = "";
             this.x = 0;
             this.y = 0;
         }
 
-        public Reservation(String locationName, String category, String title,  Date fromDate, Date toDate, double x, double y) {
+        public Reservation(String locationName, String category, String title,  String fromDate, String toDate, double x, double y) {
             this.locationName = locationName;
             this.category = category;
             this.title = title;
